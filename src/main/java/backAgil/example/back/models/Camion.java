@@ -15,7 +15,10 @@ public class Camion {
     private Long id;
     private String marque;
     private String modele;
+
+    @Column(unique = true)
     private String immatriculation;
+
     private int kilometrage;
     private String statut;
 
