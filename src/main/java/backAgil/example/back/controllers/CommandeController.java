@@ -30,7 +30,6 @@ public class CommandeController {
     @Autowired
     private commandeProduitRepository  commandeProduitRepository;
 
-
     @Autowired
     private CommandeRepository commandeRepository;
     @Autowired
@@ -40,10 +39,9 @@ public class CommandeController {
     private TypeProduitRepository typeProduitRepository;
 
     // GET all commandes
-
     @GetMapping
     public List<Commande> getAll() {
-        return cService.getAllCommandes();  // Retourne directement la liste des commandes
+        return cService.getAllCommandes();
     }
 
     // GET commande by ID
@@ -61,21 +59,65 @@ public class CommandeController {
         return ResponseEntity.ok(Map.of("exists", exists));
     }
 
+    // GET commandes by status
+    @GetMapping("/statut/{statut}")
+    public ResponseEntity<List<Commande>> getCommandesByStatut(@PathVariable("statut") String statut) {
+        try {
+            Commande.StatutCommande statutCommande = Commande.StatutCommande.valueOf(statut.toUpperCase());
+            List<Commande> commandes = cService.getCommandesByStatut(statutCommande);
+            return ResponseEntity.ok(commandes);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 
+    // UPDATE commande status
+    @PatchMapping("/{id}/statut")
+    public ResponseEntity<?> updateCommandeStatut(@PathVariable("id") Long id, @RequestBody Map<String, String> statutMap) {
+        try {
+            String statutStr = statutMap.get("statut");
+            if (statutStr == null) {
+                return ResponseEntity.badRequest().body("Le statut est requis");
+            }
+
+            Commande.StatutCommande nouveauStatut = Commande.StatutCommande.valueOf(statutStr.toUpperCase());
+            Commande updatedCommande = cService.updateStatutCommande(id, nouveauStatut);
+            return ResponseEntity.ok(updatedCommande);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Statut invalide. Valeurs acceptées: EN_COURS, PLANNIFIER, LIVRE");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Erreur serveur : " + e.getMessage());
+        }
+    }
+
+    // GET all possible statuses
+    @GetMapping("/statuts")
+    public ResponseEntity<Commande.StatutCommande[]> getAllStatuts() {
+        return ResponseEntity.ok(Commande.StatutCommande.values());
+    }
 
     // ADD commande
     @PostMapping
     public ResponseEntity<Commande> addCommande(@RequestBody Commande commande) {
+        // Set default status if not provided
+        if (commande.getStatut() == null) {
+            commande.setStatut(Commande.StatutCommande.EN_COURS);
+        }
+
         Commande createdCommande = cService.addCommande(commande);
         return new ResponseEntity<>(createdCommande, HttpStatus.CREATED);
     }
-
 
     // EDIT commande
     @PutMapping("/{id}")
     public ResponseEntity<?> editCommande(@PathVariable("id") Long id, @RequestBody Commande c) {
         try {
             c.setId(id);
+
+            // Validate status if provided
+            if (c.getStatut() != null) {
+                // Status validation is handled by enum, but we can add additional checks here if needed
+            }
 
             if (c.getCommandeProduits() != null) {
                 for (CommandeProduit cp : c.getCommandeProduits()) {
@@ -89,7 +131,7 @@ public class CommandeController {
                             produit.setDate(existingProduit.getDate());
                         }
                     }
-                    cp.setCommande(c); // Important : rattacher chaque commandeProduit à la commande
+                    cp.setCommande(c);
                 }
             }
 
@@ -102,7 +144,6 @@ public class CommandeController {
             return ResponseEntity.internalServerError().body("Erreur serveur : " + e.getMessage());
         }
     }
-
 
     // DELETE commande
     @DeleteMapping("/{id}")
@@ -123,6 +164,4 @@ public class CommandeController {
                 .distinct()
                 .collect(Collectors.toList());
     }
-
-
 }

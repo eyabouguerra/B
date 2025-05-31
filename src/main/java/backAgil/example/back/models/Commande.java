@@ -17,8 +17,7 @@ public class Commande {
 
     private String codeCommande;
 
-    @JsonProperty("quantite")
-    private Float quantite;
+
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date dateCommande;
@@ -26,6 +25,13 @@ public class Commande {
     private Float price;
 
     private Float totalPrice;
+
+    @Enumerated(EnumType.STRING)
+    private Commande.StatutCommande statut;
+
+    public enum StatutCommande {
+        EN_COURS,   PLANNIFIER ,  LIVRE
+    }
 
     @ManyToOne(fetch = FetchType.EAGER) // Changé de LAZY à EAGER pour charger le client
     @JoinColumn(name = "client_id")
@@ -40,17 +46,18 @@ public class Commande {
     public Commande() {
     }
 
-    public Commande(String codeCommande, Float quantite, Float price, Date dateCommande, Float totalPrice, Client client, List<CommandeProduit> commandeProduits) {
+    public Commande(Long id, String codeCommande, Date dateCommande, Float price, Float totalPrice, StatutCommande statut, Client client, List<CommandeProduit> commandeProduits) {
+        this.id = id;
         this.codeCommande = codeCommande;
-        this.quantite = quantite;
-        this.price = price;
+
         this.dateCommande = dateCommande;
+        this.price = price;
         this.totalPrice = totalPrice;
+        this.statut = statut;
         this.client = client;
         this.commandeProduits = commandeProduits;
     }
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -67,13 +74,14 @@ public class Commande {
         this.codeCommande = codeCommande;
     }
 
-    public Float getQuantite() {
-        return quantite;
+
+
+    public Float getPrice() {
+        return price;
     }
 
-    @JsonProperty("quantite")
-    public void setQuantite(Float quantite) {
-        this.quantite = quantite;
+    public void setPrice(Float price) {
+        this.price = price;
     }
 
     public Date getDateCommande() {
@@ -84,20 +92,20 @@ public class Commande {
         this.dateCommande = dateCommande;
     }
 
-    public Float getPrice() {
-        return price;
-    }
-
-    public void setPrice(Float price) {
-        this.price = price;
-    }
-
     public Float getTotalPrice() {
         return totalPrice;
     }
 
     public void setTotalPrice(Float totalPrice) {
         this.totalPrice = totalPrice;
+    }
+
+    public StatutCommande getStatut() {
+        return statut;
+    }
+
+    public void setStatut(StatutCommande statut) {
+        this.statut = statut;
     }
 
     public Client getClient() {
@@ -121,10 +129,11 @@ public class Commande {
         return "Commande{" +
                 "id=" + id +
                 ", codeCommande='" + codeCommande + '\'' +
-                ", quantite=" + quantite +
+
                 ", dateCommande=" + dateCommande +
                 ", price=" + price +
                 ", totalPrice=" + totalPrice +
+                ", statut=" + statut +
                 ", client=" + client +
                 ", commandeProduits=" + commandeProduits +
                 '}';

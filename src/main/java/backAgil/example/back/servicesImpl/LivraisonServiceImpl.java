@@ -122,6 +122,8 @@ public class LivraisonServiceImpl implements LivraisonService {
             return livraisonRepository.save(livraison);
         }).orElseThrow(() -> new RuntimeException("Livraison non trouvée avec l'ID : " + id));
     }
+
+
     @Override
     public void deleteLivraison(Long id) {
         livraisonRepository.deleteById(id);

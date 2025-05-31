@@ -28,7 +28,7 @@ public class CommandeServiceImpl implements CommandeService {
     private ProduitRepository pRepo;
 
     @Autowired
-    private ClientRepository clientRepository; // Inject ClientRepository
+    private ClientRepository clientRepository;
 
     @Override
     public List<Commande> getAllCommandes() {
@@ -47,6 +47,31 @@ public class CommandeServiceImpl implements CommandeService {
         return commandes;
     }
 
+    @Override
+    public List<Commande> getCommandesByStatut(Commande.StatutCommande statut) {
+        List<Commande> commandes = cRepo.findByStatut(statut);
+        commandes.forEach(commande -> {
+            if (commande.getClient() != null) {
+                commande.getClient().getFullName(); // Force client loading
+            }
+            commande.getCommandeProduits().forEach(cp -> {
+                Produit produit = cp.getProduit();
+                if (produit != null) {
+                    produit.getTypeProduit(); // Force typeProduit loading
+                }
+            });
+        });
+        return commandes;
+    }
+
+    @Override
+    public Commande updateStatutCommande(Long id, Commande.StatutCommande nouveauStatut) {
+        Commande commande = cRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Commande non trouvée"));
+
+        commande.setStatut(nouveauStatut);
+        return cRepo.save(commande);
+    }
 
     @Override
     public Commande getCommandeById(Long id) {
@@ -76,6 +101,11 @@ public class CommandeServiceImpl implements CommandeService {
     public Commande addCommande(Commande commande) {
         if (commande.getCommandeProduits() == null) {
             commande.setCommandeProduits(new ArrayList<>());
+        }
+
+        // Set default status if not provided
+        if (commande.getStatut() == null) {
+            commande.setStatut(Commande.StatutCommande.EN_COURS);
         }
 
         // Handle client creation or association
@@ -119,7 +149,6 @@ public class CommandeServiceImpl implements CommandeService {
                     existingClient.setLongitude(client.getLongitude());
                 }
 
-
                 // Save the updated client
                 client = clientRepository.save(existingClient);
                 commande.setClient(client);
@@ -156,24 +185,28 @@ public class CommandeServiceImpl implements CommandeService {
         return savedCommande;
     }
 
-
     @Override
     public Commande editCommande(Commande updatedCommande) {
         Commande existingCommande = cRepo.findById(updatedCommande.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Commande non trouvée"));
 
         existingCommande.setCodeCommande(updatedCommande.getCodeCommande());
-        existingCommande.setQuantite(updatedCommande.getQuantite());
+
         existingCommande.setDateCommande(updatedCommande.getDateCommande());
         existingCommande.setPrice(updatedCommande.getPrice());
         existingCommande.setTotalPrice(updatedCommande.getTotalPrice());
+
+        // Update status if provided
+        if (updatedCommande.getStatut() != null) {
+            existingCommande.setStatut(updatedCommande.getStatut());
+        }
 
         // Update client if provided
         if (updatedCommande.getClient() != null && updatedCommande.getClient().getClientId() != null) {
             Client client = clientRepository.findById(updatedCommande.getClient().getClientId())
                     .orElseThrow(() -> new IllegalArgumentException("Client non trouvé"));
             existingCommande.setClient(client);
-        } else {
+        } else if (updatedCommande.getClient() == null) {
             existingCommande.setClient(null); // Allow clearing the client if needed
         }
 
